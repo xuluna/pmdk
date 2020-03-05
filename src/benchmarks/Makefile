@@ -19,6 +19,7 @@ vpath %.c $(TOP)/src/rpmem_common
 vpath %.c $(TOP)/src/libpmempool
 
 BENCHMARK = pmembench
+MCAS_HOME=<path>
 
 GLIB:= $(call check_package, glib-2.0)
 ifeq ($(GLIB),y)
@@ -75,7 +76,7 @@ TMP_HEADERS := $(addsuffix tmp, $(HEADERS))
 endif
 LDFLAGS = -L$(LIBS_PATH) $(OS_LIBS)
 LDFLAGS += -L../examples/libpmemobj/map
-LDFLAGS += -L/home/luna/Work/mcas/build/dist/lib
+LDFLAGS += -L$(MCAS_HOME)/build/dist/lib
 LDFLAGS += $(EXTRA_LDFLAGS)
 ifeq ($(DEBUG),)
 LIBS += ../nondebug/libpmemcore.a
@@ -105,7 +106,7 @@ CXXFLAGS += -I../core
 CXXFLAGS += -I../examples/libpmemobj/map
 CXXFLAGS += -I../rpmem_common
 CXXFLAGS += -I../librpmem
-CXXFLAGS+= -I/home/luna/Work/mcas/build/dist/include
+CXXFLAGS+= -I$(MCAS_HOME)/build/dist/include
 CXXFLAGS += $(OS_INCS)
 CXXFLAGS += -DSRCVERSION='"$(SRCVERSION)"'
 
