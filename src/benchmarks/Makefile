@@ -75,6 +75,7 @@ TMP_HEADERS := $(addsuffix tmp, $(HEADERS))
 endif
 LDFLAGS = -L$(LIBS_PATH) $(OS_LIBS)
 LDFLAGS += -L../examples/libpmemobj/map
+LDFLAGS += -L/home/luna/Work/mcas/build/dist/lib
 LDFLAGS += $(EXTRA_LDFLAGS)
 ifeq ($(DEBUG),)
 LIBS += ../nondebug/libpmemcore.a
@@ -85,7 +86,7 @@ LIBS += ../debug/libpmemcommon.a
 endif
 CFLAGS += $(LIBNDCTL_CFLAGS)
 LIBS += -lpmemobj -lpmemlog -lpmemblk -lpmempool -lpmem -pthread -lm \
-	$(LIBDL) $(LIBUUID) $(LIBNDCTL_LIBS)
+	$(LIBDL) $(LIBUUID) $(LIBNDCTL_LIBS) -lccpm -lnupm
 ifeq ($(LIBRT_NEEDED), y)
 LIBS += -lrt
 endif
@@ -104,6 +105,7 @@ CXXFLAGS += -I../core
 CXXFLAGS += -I../examples/libpmemobj/map
 CXXFLAGS += -I../rpmem_common
 CXXFLAGS += -I../librpmem
+CXXFLAGS+= -I/home/luna/Work/mcas/build/dist/include
 CXXFLAGS += $(OS_INCS)
 CXXFLAGS += -DSRCVERSION='"$(SRCVERSION)"'
 
