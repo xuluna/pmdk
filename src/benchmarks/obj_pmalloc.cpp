@@ -173,7 +173,7 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
     return -1;
   }
 
-  ob->offs = (void *) malloc(n_ops_total * sizeof(void *));
+  ob->offs = (void **) malloc(n_ops_total * sizeof(void *));
   if (ob->offs == nullptr) {
     fprintf(stderr, "malloc allocated pointers vect err\n");
     return -1;
