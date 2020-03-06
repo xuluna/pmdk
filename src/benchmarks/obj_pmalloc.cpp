@@ -66,7 +66,7 @@ struct obj_bench {
   struct prog_args *pa;      /* prog_args structure */
   size_t *          sizes;   /* sizes for allocations */
   TOID(struct my_root) root; /* root object's OID */
-  void *     offs;           /* pointer to the vector of offsets */
+  void **    offs;           /* pointer to the vector of offsets */
   ccpm::cca *bt;
 };
 
@@ -76,7 +76,7 @@ struct obj_bench {
  */
 static int obj_init(struct benchmark *bench, struct benchmark_args *args)
 {
-  struct my_root *root = nullptr;
+  //  struct my_root *root = nullptr;
   assert(bench != nullptr);
   assert(args != nullptr);
   assert(args->opts != nullptr);
@@ -151,12 +151,16 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
    * @param force_reset
    */
 
-  nupm::Devdax_manager ddm({{"/dev/dax0.0", 0x9000000000, 0}}, true);
+  nupm::Devdax_manager::config_t config;
+  config.path      = "/dev/dax0.0";
+  config.addr      = 0x900000000;
+  config.region_id = 0;
+  nupm::Devdax_manager ddm({config}, true);
   // Devdax_manager(const std::vector<config_t> &dax_config, bool force_reset = false);
 
   ob->pop = ddm.create_region(1, 0, poolsize);
   ccpm::region_vector_t rv{ob->pop, poolsize};
-  bt = new ccpm::cca(rv);
+  ob->bt = new ccpm::cca(rv);
   // ob->pop = pmemobj_create(path, POBJ_LAYOUT_NAME(pmalloc_layout), poolsize, args->fmode);
   if (ob->pop == nullptr) {
     fprintf(stderr, "%s\n", pmemobj_errormsg());
@@ -166,6 +170,12 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
   ob->sizes = (size_t *) malloc(n_ops_total * sizeof(size_t));
   if (ob->sizes == nullptr) {
     fprintf(stderr, "malloc rand size vect err\n");
+    goto free_pop;
+  }
+
+  ob->offs = malloc(n_ops_total * sizeof(void *));
+  if (ob->offs == nullptr) {
+    fprintf(stderr, "malloc allocated pointers vect err\n");
     goto free_pop;
   }
 
@@ -222,7 +232,7 @@ static int pmalloc_op(struct benchmark *bench, struct operation_info *info)
   auto *ob = (struct obj_bench *) pmembench_get_priv(bench);
 
   uint64_t i   = info->index + info->worker->index * info->args->n_ops_per_thread;
-  int      ret = ob->bt->allocate(&ob->offs[i], ob->sizes[i], 8);
+  int      ret = ob->bt->allocate(ob->offs[i], ob->sizes[i], 8);
   // int      ret = pmalloc(ob->pop, &ob->offs[i], ob->sizes[i], 0, 0);
   if (ret) {
     fprintf(stderr, "cca allocate ret: %d\n", ret);
@@ -290,30 +300,32 @@ static void shuffle_objects(uint64_t *objects, size_t start, size_t nobjects, un
  */
 static int pmix_op(struct benchmark *bench, struct operation_info *info)
 {
-  auto *ob = (struct obj_bench *) pmembench_get_priv(bench);
-  auto *w  = (struct pmix_worker *) info->worker->priv;
+  fprintf(stderr, "not implemented yet!\n");
+  /*
+    auto *ob = (struct obj_bench *) pmembench_get_priv(bench);
+    auto *w  = (struct pmix_worker *) info->worker->priv;
 
-  uint64_t idx = info->worker->index * info->args->n_ops_per_thread;
+    uint64_t idx = info->worker->index * info->args->n_ops_per_thread;
 
-  uint64_t *objects = &ob->offs[idx];
+    uint64_t *objects = &ob->offs[idx];
 
-  if (w->nobjects > FREE_OPS && FREE_PCT > RRAND_R(&w->seed, 100, 0)) {
-    shuffle_objects(objects, w->shuffle_start, w->nobjects, &w->seed);
+    if (w->nobjects > FREE_OPS && FREE_PCT > RRAND_R(&w->seed, 100, 0)) {
+      shuffle_objects(objects, w->shuffle_start, w->nobjects, &w->seed);
 
-    for (int i = 0; i < FREE_OPS; ++i) {
-      uint64_t off = objects[--w->nobjects];
-      ob->bt->free(&off, ob->sizes[idx + info->index]);
-      // pfree(ob->pop, &off);
+      for (int i = 0; i < FREE_OPS; ++i) {
+        uint64_t off = objects[--w->nobjects];
+        ob->bt->free(&off, ob->sizes[idx + info->index]);
+        // pfree(ob->pop, &off);
+      }
+      w->shuffle_start = w->nobjects;
     }
-    w->shuffle_start = w->nobjects;
-  }
-  else {
-    int ret = ob->bt->allocate(&objects[w->nobjects++], ob->sizes[idx + info->index], 8);
-    if (ret) {
-      fprintf(stderr, "aac allocate ret: %d\n", ret);
-      return ret;
-    }
-  }
+    else {
+      int ret = ob->bt->allocate(&objects[w->nobjects++], ob->sizes[idx + info->index], 8);
+      if (ret) {
+        fprintf(stderr, "aac allocate ret: %d\n", ret);
+        return ret;
+      }
+    }*/
 
   return 0;
 }
@@ -327,7 +339,7 @@ static int pmalloc_exit(struct benchmark *bench, struct benchmark_args *args)
   auto *ob = (struct obj_bench *) pmembench_get_priv(bench);
 
   for (size_t i = 0; i < args->n_ops_per_thread * args->n_threads; i++) {
-    if (ob->offs[i]) ob->bt->free(&ob->offs[i], ob->sizes[i]);
+    if (ob->offs[i]) ob->bt->free(ob->offs[i], ob->sizes[i]);
   }
 
   return obj_exit(bench, args);
@@ -345,13 +357,13 @@ static int pfree_init(struct benchmark *bench, struct benchmark_args *args)
   auto *ob = (struct obj_bench *) pmembench_get_priv(bench);
 
   for (size_t i = 0; i < args->n_ops_per_thread * args->n_threads; i++) {
-    ret = ob->bt->allocate(&ob->offs[i], ob->sizes[i], 8);
+    ret = ob->bt->allocate(ob->offs[i], ob->sizes[i], 8);
     // ret = pmalloc(ob->pop, &ob->offs[i], ob->sizes[i], 0, 0);
     if (ret) {
       fprintf(stderr, "aac allocte at idx %" PRIu64 " ret: %s\n", i, pmemobj_errormsg());
       /* free the allocated memory */
       while (i != 0) {
-        ob->bt->free(&ob->offs[i - 1], ob->sizes[i - 1]);
+        ob->bt->free(ob->offs[i - 1], ob->sizes[i - 1]);
         // pfree(ob->pop, &ob->offs[i - 1]);
         i--;
       }
@@ -372,7 +384,7 @@ static int pfree_op(struct benchmark *bench, struct operation_info *info)
 
   uint64_t i = info->index + info->worker->index * info->args->n_ops_per_thread;
 
-  ob->bt->free(&ob->offs[i], ob->sizes[i]);
+  ob->bt->free(ob->offs[i], ob->sizes[i]);
   // pfree(ob->pop, &ob->offs[i]);
 
   return 0;
