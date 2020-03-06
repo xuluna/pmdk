@@ -76,7 +76,6 @@ TMP_HEADERS := $(addsuffix tmp, $(HEADERS))
 endif
 LDFLAGS = -L$(LIBS_PATH) $(OS_LIBS)
 LDFLAGS += -L../examples/libpmemobj/map
-LDFLAGS += -L$(MCAS_HOME)/build/dist/lib
 LDFLAGS += $(EXTRA_LDFLAGS)
 ifeq ($(DEBUG),)
 LIBS += ../nondebug/libpmemcore.a
@@ -87,7 +86,7 @@ LIBS += ../debug/libpmemcommon.a
 endif
 CFLAGS += $(LIBNDCTL_CFLAGS)
 LIBS += -lpmemobj -lpmemlog -lpmemblk -lpmempool -lpmem -pthread -lm \
-	$(LIBDL) $(LIBUUID) $(LIBNDCTL_LIBS) -lccpm -lnupm
+	$(LIBDL) $(LIBUUID) $(LIBNDCTL_LIBS) -l$(MCAS_HOME)/build/dist/lib/libccpm.so -l$(MCAS_HOME)/build/dist/lib/libnupm.so
 ifeq ($(LIBRT_NEEDED), y)
 LIBS += -lrt
 endif

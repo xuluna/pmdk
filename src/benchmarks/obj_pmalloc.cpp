@@ -123,7 +123,7 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
     if (args->is_poolset || type == TYPE_DEVDAX) {
       if (args->fsize < poolsize) {
         fprintf(stderr, "file size too large\n");
-        goto free_ob;
+        return -1;
       }
       poolsize = 0;
     }
@@ -134,9 +134,9 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
 
   if (args->is_dynamic_poolset) {
     int ret = dynamic_poolset_create(args->fname, poolsize);
-    if (ret == -1) goto free_ob;
+    if (ret == -1) return -1;
 
-    if (util_safe_strcpy(path, POOLSET_PATH, sizeof(path)) != 0) goto free_ob;
+    if (util_safe_strcpy(path, POOLSET_PATH, sizeof(path)) != 0) return -1;
 
     poolsize = 0;
   }
@@ -164,19 +164,19 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
   // ob->pop = pmemobj_create(path, POBJ_LAYOUT_NAME(pmalloc_layout), poolsize, args->fmode);
   if (ob->pop == nullptr) {
     fprintf(stderr, "%s\n", pmemobj_errormsg());
-    goto free_ob;
+    return -1;
   }
 
   ob->sizes = (size_t *) malloc(n_ops_total * sizeof(size_t));
   if (ob->sizes == nullptr) {
     fprintf(stderr, "malloc rand size vect err\n");
-    goto free_pop;
+    return -1;
   }
 
   ob->offs = (void *) malloc(n_ops_total * sizeof(void *));
   if (ob->offs == nullptr) {
     fprintf(stderr, "malloc allocated pointers vect err\n");
-    goto free_pop;
+    return -1;
   }
 
   if (ob->pa->use_random_size) {
@@ -193,13 +193,6 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
   }
 
   return 0;
-
-free_pop:
-  ddm.erase_region(1, 0);
-
-free_ob:
-  free(ob);
-  return -1;
 }
 
 /*
