@@ -93,7 +93,6 @@ LIBS += -lrt
 endif
 
 CXXFLAGS = -Wall
-CXXFLAGS += -Werror
 CXXFLAGS += -std=c++11
 CXXFLAGS += -Wno-invalid-offsetof
 CXXFLAGS += -Wpointer-arith
