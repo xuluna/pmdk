@@ -62,12 +62,12 @@ struct my_root {
  * obj_bench - variables used in benchmark, passed within functions
  */
 struct obj_bench {
-  void *            pop;     /* persistent pool handle */
-  struct prog_args *pa;      /* prog_args structure */
-  size_t *          sizes;   /* sizes for allocations */
-  TOID(struct my_root) root; /* root object's OID */
-  void **    offs;           /* pointer to the vector of offsets */
-  ccpm::cca *bt;
+  struct prog_args *pa;       /* prog_args structure */
+  size_t *          sizes;    /* sizes for allocations */
+  TOID(struct my_root) root;  /* root object's OID */
+  void **               offs; /* pointer to the vector of offsets */
+  ccpm::cca *           bt;
+  nupm::Devdax_manager *ddm;
 };
 
 /*
@@ -155,14 +155,13 @@ static int obj_init(struct benchmark *bench, struct benchmark_args *args)
   config.path      = "/dev/dax0.0";
   config.addr      = 0x900000000;
   config.region_id = 0;
-  nupm::Devdax_manager ddm({config}, true);
+  ob->ddm          = new nupm::Devdax_manager({config}, true);
   // Devdax_manager(const std::vector<config_t> &dax_config, bool force_reset = false);
 
-  ob->pop = ddm.create_region(1, 0, poolsize);
-  ccpm::region_vector_t rv{ob->pop, poolsize};
-  ob->bt = new ccpm::cca(rv);
+  auto p = ob->ddm->create_region(1, 0, poolsize);
+  ob->bt = new ccpm::cca(ccpm::region_vector_t{p, poolsize});
   // ob->pop = pmemobj_create(path, POBJ_LAYOUT_NAME(pmalloc_layout), poolsize, args->fmode);
-  if (ob->pop == nullptr) {
+  if (p == nullptr) {
     fprintf(stderr, "%s\n", pmemobj_errormsg());
     return -1;
   }
@@ -207,6 +206,10 @@ static int obj_exit(struct benchmark *bench, struct benchmark_args *args)
 
   // POBJ_FREE(&D_RW(ob->root)->offs);
   // pmemobj_close(ob->pop);
+  free(ob->offs);
+  ob->ddm->erase_region(1, 0);
+  delete ob->bt;
+  delete ob->ddm;
 
   return 0;
 }
