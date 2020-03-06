@@ -86,7 +86,7 @@ LIBS += ../debug/libpmemcommon.a
 endif
 CFLAGS += $(LIBNDCTL_CFLAGS)
 LIBS += -lpmemobj -lpmemlog -lpmemblk -lpmempool -lpmem -pthread -lm \
-	$(LIBDL) $(LIBUUID) $(LIBNDCTL_LIBS) -l$(MCAS_HOME)/build/dist/lib/libccpm.so -l$(MCAS_HOME)/build/dist/lib/libnupm.so
+	$(LIBDL) $(LIBUUID) $(LIBNDCTL_LIBS) $(MCAS_HOME)/build/dist/lib/libccpm.so $(MCAS_HOME)/build/dist/lib/libnupm.so
 ifeq ($(LIBRT_NEEDED), y)
 LIBS += -lrt
 endif
