@@ -29,7 +29,7 @@
  * The factor used for PMEM pool size calculation, accounts for metadata,
  * fragmentation and etc.
  */
-#define FACTOR 1.2f
+#define FACTOR 5.2f
 
 /* The minimum allocation size that pmalloc can perform */
 #define ALLOC_MIN_SIZE 64
@@ -228,7 +228,9 @@ static int pmalloc_op(struct benchmark *bench, struct operation_info *info)
   auto *ob = (struct obj_bench *) pmembench_get_priv(bench);
 
   uint64_t i   = info->index + info->worker->index * info->args->n_ops_per_thread;
-  int      ret = ob->bt->allocate(ob->offs[i], ob->sizes[i], 8);
+  void *   p   = nullptr;
+  int      ret = ob->bt->allocate(p, ob->sizes[i], 8);
+  ob->offs[i]  = p;
   // int      ret = pmalloc(ob->pop, &ob->offs[i], ob->sizes[i], 0, 0);
   if (ret) {
     fprintf(stderr, "cca allocate ret: %d\n", ret);
@@ -353,7 +355,9 @@ static int pfree_init(struct benchmark *bench, struct benchmark_args *args)
   auto *ob = (struct obj_bench *) pmembench_get_priv(bench);
 
   for (size_t i = 0; i < args->n_ops_per_thread * args->n_threads; i++) {
-    ret = ob->bt->allocate(ob->offs[i], ob->sizes[i], 8);
+    void *p     = nullptr;
+    ret         = ob->bt->allocate(p, ob->sizes[i], 8);
+    ob->offs[i] = p;
     // ret = pmalloc(ob->pop, &ob->offs[i], ob->sizes[i], 0, 0);
     if (ret) {
       fprintf(stderr, "aac allocte at idx %" PRIu64 " ret: %s\n", i, pmemobj_errormsg());
